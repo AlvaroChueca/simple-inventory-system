@@ -13,6 +13,7 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -54,7 +55,7 @@ public class Product {
 
 	@Column(name = "min_stock", nullable = false)
 	@NotNull(message = "Minimum stock is required")
-	@Min(value = 0, message = "Minimum stock must be greater than or equal to 0")
+	@PositiveOrZero(message = "Minimum stock must be greater than or equal to 0")
 	private Integer minStock;
 
 	@Column(name = "price", nullable = false)
@@ -63,8 +64,8 @@ public class Product {
 	@Digits(integer = 10, fraction = 2)
 	private BigDecimal price;
 
-	@Column(name = "sku", nullable = false, unique = true)
-	@Pattern(regexp = "[A-Z]{3}-[0-9]{4}", message = "SKU must be in the format XXX-XXXX")
+	@Column(name = "sku", nullable = false, unique = true, length = 8)
+	@Pattern(regexp = "[A-Z]{3}-[0-9]{4}", message = "SKU must be in the format XXX-XXXX (e.g., ABC-1234)")
 	private String sku;
 
 	@CreationTimestamp
@@ -76,6 +77,23 @@ public class Product {
 	private LocalDateTime updatedAt;
 
 	public boolean isLowStock() {
-		return quantity <= minStock;
+		return this.quantity <= this.minStock;
+	}
+
+	public void addStock(Integer quantityToAdd){
+		if (quantityToAdd == null || quantityToAdd <= 0){
+			throw new IllegalArgumentException("Quantity to add must be positive.");
+		}
+		this.quantity += quantityToAdd;
+	}
+
+	public void reduceStock(Integer quantityToReduce){
+		if (quantityToReduce == null || quantityToReduce <= 0) {
+			throw new IllegalArgumentException("Quantity to reduce must be positive.");
+		}
+		if (this.quantity < quantityToReduce){
+			throw new IllegalArgumentException("Not enough stock for product id: " + this.id + ". Current stock: " + this.quantity + ", trying to reduce: " + quantityToReduce);
+		}
+		this.quantity -= quantityToReduce;
 	}
 }
